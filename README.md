@@ -1,25 +1,43 @@
 # 🚀 KubeCost Intelligence
 
-### Multi-Tenant Kubernetes Cost Attribution & Anomaly Detection
+Multi-Tenant Kubernetes Cost Attribution & Anomaly Detection
 
-KubeCost Intelligence is a cloud infrastructure monitoring dashboard designed to help organizations understand and manage Kubernetes costs across multiple tenants.
+KubeCost Intelligence is a cloud infrastructure monitoring dashboard designed to help organizations understand and manage Kubernetes costs across multiple tenants. It attributes costs to namespaces/tenants and detects anomalous resource consumption.
 
-When multiple teams share the same Kubernetes cluster, it can be difficult to determine which team is consuming the most resources and contributing the most to the infrastructure cost.
+## Stack
 
-KubeCost Intelligence addresses this problem by monitoring resource usage, attributing costs to individual tenants/namespaces, and identifying unusual resource consumption or cost spikes.
+- Next.js (App Router) + TypeScript
+- Tailwind CSS
+- Recharts
+- Lucide React
 
----
+## Run locally
 
-## 🎯 Problem Statement
+```bash
+npm install
+npm run dev
+```
 
-In a shared Kubernetes environment, multiple teams may use the same cluster.
+Open http://localhost:3000.
 
-For example:
+## Demo flow
 
-```text
-                Kubernetes Cluster
-                       |
-          ┌────────────┼────────────┐
-          ↓            ↓            ↓
-       Team A        Team B       Team C
-       team-a        team-b       team-c
+1. Dashboard — total cluster cost, tenant distribution, overview table
+2. Cost Attribution — per-tenant breakdown; open tenant details
+3. Anomaly Detection — pick a tenant, click Simulate Anomaly, watch metrics climb
+4. Cost Validation — compare calculated cost vs OpenCost reference
+5. Reset Simulation to restore baseline
+
+## Project structure
+
+```
+src/
+  data/          # Mock datasets (replace with API responses later)
+  services/      # Data access layer (Prometheus / K8s / OpenCost ready)
+  context/       # Shared cluster + simulation state
+  components/    # Reusable UI, charts, tables
+  app/           # Pages
+```
+
+Mock data is intentional. Services are structured so Prometheus, Kubernetes API, OpenCost, and a custom anomaly detection API can be plugged in without rewriting the UI.
+

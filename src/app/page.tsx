@@ -1,103 +1,138 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import {
+  AlertTriangle,
+  Cpu,
+  IndianRupee,
+  Users,
+} from "lucide-react";
+import { MetricCard } from "@/components/ui/MetricCard";
+import { CostChart } from "@/components/charts/CostChart";
+import { TenantDonutChart } from "@/components/charts/TenantDonutChart";
+import { TenantTable } from "@/components/tenants/TenantTable";
+import { PageHeader, LoadingBlock } from "@/components/layout/PageHeader";
+import { useCluster } from "@/context/ClusterContext";
+import { formatINR, formatPercent } from "@/services/costService";
+
+export default function DashboardPage() {
+  const {
+    metrics,
+    tenants,
+    costSeries,
+    timeRange,
+    setTimeRange,
+    isAnomalyActive,
+    isSimulating,
+    activeSimTeam,
+    selectedSimTeam,
+    loading,
+  } = useCluster();
+
+  const simTeamId = activeSimTeam ?? selectedSimTeam;
+  const simTenant = tenants.find((t) => t.id === simTeamId);
+  const simName = simTenant?.name ?? "Team C";
+
+  const monthDelta =
+    metrics.previousMonthCost > 0
+      ? Math.round(
+          ((metrics.totalCost - metrics.previousMonthCost) /
+            metrics.previousMonthCost) *
+            1000
+        ) / 10
+      : 0;
+
+  const costSpark = costSeries.map((p) => p.cost);
+  const cpuSpark = [48, 52, 50, 55, 58, 54, metrics.cpuUtilization];
+  const anomalySpark = [1, 1, 2, 2, 2, metrics.anomaliesDetected];
+
+  if (loading) return <LoadingBlock />;
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="space-y-6">
+      <PageHeader
+        title="Kubernetes Cost Intelligence"
+        subtitle="Monitor shared infrastructure costs and resource anomalies."
+      />
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          title="Total Cost"
+          value={formatINR(metrics.totalCost)}
+          trend={monthDelta}
+          trendLabel="/ month vs prior"
+          icon={<IndianRupee className="h-4 w-4" />}
+          accent="cyan"
+          pulse={isAnomalyActive || isSimulating}
+          sparkline={costSpark.length > 1 ? costSpark : undefined}
+        />
+        <MetricCard
+          title="Active Tenants"
+          value={String(metrics.activeTenants)}
+          subtitle="namespaces monitored"
+          icon={<Users className="h-4 w-4" />}
+          accent="emerald"
+        />
+        <MetricCard
+          title="CPU Utilization"
+          value={`${metrics.cpuUtilization}%`}
+          subtitle="cluster average"
+          icon={<Cpu className="h-4 w-4" />}
+          accent="amber"
+          pulse={isSimulating}
+          sparkline={cpuSpark}
+        />
+        <MetricCard
+          title="Anomalies"
+          value={String(metrics.anomaliesDetected)}
+          subtitle={
+            isAnomalyActive ? "1 Critical" : "active alerts"
+          }
+          icon={<AlertTriangle className="h-4 w-4" />}
+          accent={metrics.anomaliesDetected > 2 ? "rose" : "amber"}
+          pulse={isAnomalyActive}
+          sparkline={anomalySpark}
+        />
+      </div>
+
+      <div className="grid gap-3 xl:grid-cols-5">
+        <div className="xl:col-span-3">
+          <CostChart
+            data={costSeries}
+            timeRange={timeRange}
+            onTimeRangeChange={setTimeRange}
+            spike={isAnomalyActive}
+          />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        <div className="xl:col-span-2">
+          <TenantDonutChart tenants={tenants} />
+        </div>
+      </div>
+
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-[13px] font-semibold tracking-tight text-slate-100">
+            Tenant Overview
+          </h3>
+          <p className="text-[11px] text-slate-600">
+            Live attributed cost · trends vs baseline
+          </p>
+        </div>
+        <TenantTable tenants={tenants} />
+      </div>
+
+      {(isAnomalyActive || isSimulating) && (
+        <div className="flex items-start gap-3 rounded-lg border border-rose-500/25 bg-rose-500/[0.07] px-4 py-3 text-[13px] text-rose-200 shadow-glow-danger">
+          <span className="mt-0.5 h-2 w-2 shrink-0 animate-pulse-dot rounded-full bg-rose-400" />
+          <div>
+            {isSimulating
+              ? `Simulation in progress — ${simName} resource consumption is climbing above baseline.`
+              : `ANOMALY DETECTED — ${simName} cost ${formatPercent(
+                  simTenant?.trend ?? 0,
+                  true
+                )} vs baseline. Inspect Anomaly Detection for details.`}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
