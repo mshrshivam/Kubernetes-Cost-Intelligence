@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubecost-intelligence
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: kubecost-intelligence
+  template:
+    metadata:
+      labels:
+        app: kubecost-intelligence
+    spec:
+      containers:
+      - name: app
+        image: ghcr.io/mshrshivam/Kubernetes-Cost-Intelligence:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: PORT
+          value: "3000"
